@@ -29,6 +29,7 @@
 	             <a href="/publish?modelId=${model.id}">发布</a>
 	             <a href="/revokePublish?modelId=${model.id}">撤销</a>
 	             <a href="/delete?modelId=${model.id}">删除</a>
+	             <a href="/export?modelId=${model.id}">导出</a>
 	            </td>
 	        </tr>
 	       </#list>

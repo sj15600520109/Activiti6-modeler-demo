@@ -1,6 +1,9 @@
 package com.activiti6.controller;
 
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,6 +18,7 @@ import org.activiti.engine.RuntimeService;
 import org.activiti.engine.repository.Deployment;
 import org.activiti.engine.repository.Model;
 import org.activiti.engine.runtime.ProcessInstance;
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -182,22 +186,47 @@ public class ModelerController{
     @RequestMapping("/delete")
     public Object deleteProcessInstance(String modelId){
     	logger.info("删除流程实例入参modelId：{}",modelId);
-    	Map<String, String> map = new HashMap<String, String>();
-		Model modelData = repositoryService.getModel(modelId);
-		if(null != modelData){
-			try {
-			   ProcessInstance pi = runtimeService.createProcessInstanceQuery().processDefinitionKey(modelData.getKey()).singleResult();
-			   if(null != pi) {
-				   runtimeService.deleteProcessInstance(pi.getId(), "");
-				   historyService.deleteHistoricProcessInstance(pi.getId());
-			   }
+		Map<String, String> map = new HashMap<String, String>();
+		try {
+				repositoryService.deleteModel(modelId);
 				map.put("code", "SUCCESS");
 			} catch (Exception e) {
 				logger.error("删除流程实例服务异常：{}",e);
 				map.put("code", "FAILURE");
 			}
-		}
 		logger.info("删除流程实例出参map：{}",map);
         return map;
     }
+
+	/**
+	 * 导出流程xml文件
+	 * @param modelId 模型ID
+	 * @return
+	 */
+	@RequestMapping("/export")
+	public void export(String modelId,HttpServletResponse response){
+		BufferedOutputStream bos = null;
+		InputStream in = null;
+			try {
+				Model modelData = repositoryService.getModel(modelId);
+				in = repositoryService.getResourceAsStream(modelData.getDeploymentId(), modelData.getName());
+				// 封装输出流
+				IOUtils.copy(in, response.getOutputStream());
+				String filename = modelData.getId() + ".bpmn20.xml";
+				response.setContentType("application/x-msdownload;");
+				response.setHeader("Content-Disposition",
+						"attachment; filename=" + filename);
+				response.flushBuffer();
+			} catch (Exception e) {
+		System.out.println("流程部署失败");
+		e.printStackTrace();
+	}finally {
+				try {
+					in.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+
+	}
 }
